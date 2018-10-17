@@ -1,0 +1,203 @@
+<html>
+    <head>
+        <title>VSCLab Hangout</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0">
+        <style>
+            input:invalid { border: 2px solid red; }
+        </style>
+    </head>
+
+    <body class="container centered">
+        <table class="table table-striped table-hover table-bordered" id="the-table">
+            <tbody>
+                <tr>
+                    <th class="text-center"> Name </th>
+                    <th class="text-center"> Paid ($) </th>
+                    <th class="text-center"> Action </th>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="row">
+            <div class="col-4 offset-4">
+                <p class="text-center">
+                    <button type="button" onclick="AddPerson()" class="btn btn-primary btn-block">Add Person</button>
+                </p>
+                <p class="text-center">
+                    <button type="button" onclick="Calculate()" class="btn btn-warning btn-block">Calculate!</button>
+                </p>
+            </div>
+
+            <div class="col-12">
+                <p id="result" class="text-monospace"></p>
+            </div>
+        </div>
+
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css"
+            integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO"
+            crossorigin="anonymous">
+
+        <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
+            integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
+            crossorigin="anonymous"></script>
+
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js"
+            integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49"
+            crossorigin="anonymous"></script>
+
+        <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js"
+            integrity="sha384-ChfqqxuZUCnJSK3+MXmPNIyE6ZbWh2IMqE241rYiqJxyMiZ6OW/JmZQ5stwEULTy"
+            crossorigin="anonymous"></script>
+
+        <script>
+            function AddPerson(name) {
+                var newRow = $('<tr class="payment-entry">');
+
+                if (name === undefined)
+                    newRow.append('<td><input type="text" class="form-control name" placeholder="your name" /></td>');
+                else
+                    newRow.append('<td><input type="text" class="form-control name" placeholder="your name" value="' + name + '"/></td>');
+
+                newRow.append('<td><input type="number" min="0" step="0.01" class="form-control payment" placeholder="0" /></td>');
+                newRow.append('<td class="text-center"><button type="button" onclick="RemovePerson(this)" class="btn btn-danger">Delete</button></td>');
+
+                $("#the-table").append(newRow);
+            }
+
+            function RemovePerson(source) {
+                source.closest("tr").remove();
+            }
+
+            function Calculate() {
+
+                $(".payment").each((index, p) => {
+                    if (!p.checkValidity()) {
+                        alert("Please fix invalid payments.");
+                        return;
+                    }
+                });
+
+                var n_persons = 0;
+                var payments = {};
+                $('.payment-entry').each(function(index, tr) {
+                    var name = $(this).find('.name').val().trim();
+                    var paid = Number($(this).find('.payment').val());
+                    payments[name] = {
+                        paid: paid,
+                        balance: paid,
+                        send: {},
+                        receive: {},
+                    };
+
+                    n_persons += 1;
+                })
+
+                if (n_persons > Object.keys(payments).length) {
+                    alert("There are identical names!");
+                } else if (n_persons == 0) {
+                    alert("Someone has to be there.");
+                } else if (n_persons == 1) {
+                    alert("Man you only have one person.");
+                } else {
+                    FillInPaymentPlan(payments);
+                    PrintPaymentPlan(payments);
+                }
+            }
+
+            function PrintPaymentPlan(payments) {
+                var lines = [];
+                for (var name in payments) {
+                    var send_items = [];
+                    var receive_items = [];
+
+                    for (var payee in payments[name].send) {
+                        send_items.push("$" + payments[name].send[payee].toFixed(2) +
+                                        " to " + payee);
+                    }
+
+                    if (send_items.length > 0) {
+                        lines.push(name + " sends " + send_items.join(", ") + ".");
+                    }
+
+                    for (var payer in payments[name].receive) {
+                        receive_items.push("$" + payments[name].receive[payer].toFixed(2) +
+                                        " from " + payer);
+                    }
+
+                    if (receive_items.length > 0) {
+                        lines.push(name + " receives " + receive_items.join(", ") + ".");
+                    }
+                }
+
+                var average = Object.values(payments).map(x => x.paid).reduce((x, y) => x + y) / Object.keys(payments).length;
+
+                $('#result').empty();
+
+                if (lines.length > 0) {
+                    lines.forEach(line => {
+                        $('#result').append($("<p>" + line + "</p>"));
+                    });
+
+                    $('#result').append($("<p> Everyone ends up paying $" + average.toFixed(2) + ". </p>"));
+                } else {
+                    $('#result').append($("<p>Nothing happens.</p>"));
+                }
+            }
+
+            function FillInPaymentPlan(payments) {
+
+                var tol = 1E-4;
+                var total = 0;
+                for (var name in payments) {
+                    total += payments[name].paid;
+                }
+
+                var average = total / Object.keys(payments).length;
+
+                var senders = [];
+                var receivers = [];
+
+                for (var name in payments) {
+                    if (payments[name].balance > average) {
+                        receivers.push(name);
+                    } else if (payments[name].balance < average) {
+                        senders.push(name);
+                    }
+                }
+
+                var abs = x => x > 0 ? x : -x;
+                var min = (x, y) => x < y ? x : y;
+
+                while (senders.length > 0 && receivers.length > 0) {
+
+                    var sender = senders.pop();
+                    var receiver = receivers.pop();
+
+                    var transaction = min(
+                        average - payments[sender].balance,
+                        payments[receiver].balance - average);
+
+                    payments[sender].balance += transaction;
+                    payments[sender].send[receiver] = transaction;
+
+                    payments[receiver].balance -= transaction;
+                    payments[receiver].receive[sender] = transaction;
+
+                    if (abs(payments[sender].balance - average) > tol)
+                        senders.push(sender);
+
+                    if (abs(payments[receiver].balance - average) > tol)
+                        receivers.push(receiver);
+                }
+            }
+
+            $(document).ready(function() {
+                var buddies = ["Sheriff", "Chase", "Hengyang", "Yue",
+                    "Shaoyi", "Han", "Zeyu", "Shuyuan", "Wentian", "Jinwei"];
+                buddies.sort().forEach(buddy => {
+                    AddPerson(buddy);
+                });
+            });
+        </script>
+    </body>
+</html>
