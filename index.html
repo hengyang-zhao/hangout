@@ -79,6 +79,13 @@
                     }
                 });
 
+                $(".name").each((index, n) => {
+                    if (n.value.trim().length == 0) {
+                        alert("Please fix empty names.");
+                        return;
+                    }
+                });
+
                 var n_persons = 0;
                 var payments = {};
                 $('.payment-entry').each(function(index, tr) {
