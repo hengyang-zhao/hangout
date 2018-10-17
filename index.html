@@ -72,19 +72,25 @@
 
             function Calculate() {
 
+                var valid = true;
+
                 $(".payment").each((index, p) => {
                     if (!p.checkValidity()) {
                         alert("Please fix invalid payments.");
-                        return;
+                        valid = false;
                     }
                 });
+
+                if (!valid) return;
 
                 $(".name").each((index, n) => {
                     if (n.value.trim().length == 0) {
                         alert("Please fix empty names.");
-                        return;
+                        valid = false;
                     }
                 });
+
+                if (!valid) return;
 
                 var n_persons = 0;
                 var payments = {};
